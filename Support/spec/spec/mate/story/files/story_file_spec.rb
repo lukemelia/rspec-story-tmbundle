@@ -9,34 +9,36 @@ module Spec
         describe StoryFile do
           before(:each) do
             @fixtures_path = File.expand_path(File.join(File.dirname(__FILE__), %w[.. .. .. .. .. fixtures]))
-            @story_file = StoryFile.new(File.expand_path(File.join(@fixtures_path, %w[stories stories basic.story])))
-          end
-          
-          it "should determine the runner file" do
-            @story_file.runner_file_path.should == "#{@fixtures_path}/stories/basic.rb"
+            @story_file = StoryFile.new(File.expand_path(File.join(@fixtures_path, %w[stories basic one_basic.story])))
           end
           
           it "should determine the steps file" do
-            @story_file.steps_file_path.should == "#{@fixtures_path}/stories/steps/basic_steps.rb"
+            @story_file.primary_steps_file_path.should == "#{@fixtures_path}/stories/steps/basic.rb"
           end
           
           it "should determine the correct alternate file" do
-            @story_file.alternate_file_path.should == @story_file.steps_file_path
+            @story_file.alternate_file_path.should == @story_file.primary_steps_file_path
           end
           
           describe "#name" do
             it "should return the simple name (based off the file name)" do
-              @story_file.name.should == 'basic'
+              @story_file.name.should == 'one_basic'
+            end
+          end
+          
+          describe "#theme" do
+            it "should return the simple theme name (based off the directory name)" do
+              @story_file.theme.should == 'basic'
             end
           end
           
           describe "#alternate_files_and_names" do
             before(:each) do
-              RunnerFile.stub!(:new).and_return(mock('runner file', :step_files_and_names => [{:name => 'foo', :file_path => '/path/to/foo'}]))
+              StepsFile.stub!(:new).and_return(mock('steps file', :referenced_step_files_and_names => [{:name => 'foo', :file_path => '/path/to/foo'}]))
             end
             
-            it "should generate a list of files including the runner file and steps files included in the runner file" do
-              @story_file.alternate_files_and_names.should == [{:name => 'basic runner', :file_path => "#{@fixtures_path}/stories/basic.rb"}, {:name => 'foo', :file_path => '/path/to/foo'}]
+            it "should generate a list of files including the theme's step file and all the steps files included in the theme steps file" do
+              @story_file.alternate_files_and_names.should == [{:name => 'basic steps', :file_path => "#{@fixtures_path}/stories/steps/basic.rb"}, {:name => 'foo', :file_path => '/path/to/foo'}]
             end
           end
           
@@ -57,8 +59,8 @@ module Spec
           describe "#location_of_step" do
             describe "when the step definition exists" do
               before(:each) do
-                RunnerFile.stub!(:new).and_return(@runner = mock('runner file', :step_files_and_names => [{:name => 'basic', :file_path => '/path/to/basic'}]))
-                StepsFile.stub!(:new).and_return(@steps = mock('steps file', :step_definitions => [{:step => @step = mock('step', :matches? => true), :type => 'Given', :pattern => "string pattern", :line => 3, :column => 5, :file_path => '/path/to/steps', :group_tag => 'basic'}]))
+                @steps = mock('another steps file', :referenced_steps_files => [], :step_definitions => [{:step => @step = mock('step', :matches? => true), :type => 'Given', :pattern => "string pattern", :line => 3, :column => 5, :file_path => '/path/to/steps', :group_tag => 'basic'}])
+                StepsFile.stub!(:new).and_return(mock('primary steps file', :referenced_steps_files => [@steps], :step_definitions => []))
               end
               
               it "should return the correct file, line and column" do
@@ -70,7 +72,8 @@ module Spec
           
           describe "#includes_step_file?" do
             before(:each) do
-              RunnerFile.stub!(:new).and_return(mock('runner file', :step_files_and_names => [{:name => 'basic', :file_path => '/path/to/basic'}]))
+              @steps = mock('another steps file', :referenced_steps_files => [], :name => 'global')
+              StepsFile.stub!(:new).and_return(mock('primary steps file', :name => 'basic', :referenced_steps_files => [@steps]))
             end
             
             it "should return true if the step file name is used by the story" do
@@ -79,6 +82,10 @@ module Spec
             
             it "should return false if the step file name is not used by the story" do
               @story_file.includes_step_file?('foo').should be_false
+            end
+            
+            it "should true false if the step file name is used indirectly by the story" do
+              @story_file.includes_step_file?('global').should be_true
             end
           end
           

@@ -13,26 +13,26 @@ module Spec
           def is_story_file?; true; end
           
           def name
-            @name ||= full_file_path.match(/\/stories\/([^\.\/]*)\.(story|txt)$/).captures.first
+            @name ||= full_file_path.match(/\/stories\/[^\.\/]*\/([^\.\/]*)\.story$/).captures.first
+          end
+          
+          def theme
+            @theme ||= full_file_path.match(/\/stories\/([^\.\/]*)\/[^\.\/]*\.story$/).captures.first
           end
           
           def alternate_file_path
-            steps_file_path
+            primary_steps_file_path
           end
           
-          def runner_file_path
-            @runner_file_path ||= full_file_path.gsub(%r</stories/#{name}\.(story|txt)$>, "/#{name}.rb")
+          def primary_steps_file_path
+            @primary_steps_file_path ||= full_file_path.gsub(%r</stories/#{theme}/#{name}\.story$>, "/stories/steps/#{theme}.rb")
           end
           
-          def steps_file_path
-            @steps_file_path ||= full_file_path.gsub(%r</stories/#{name}\.(story|txt)$>, "/steps/#{name}_steps.rb")
-          end
-          
-          # Step files included in the runner file
+          # Steps file and included steps files
           def alternate_files_and_names
-            [{:name => "#{name.gsub('_', ' ')} runner", :file_path => runner_file_path}] + runner_step_files_and_names
+            [{:name => "#{theme.gsub('_', ' ')} steps", :file_path => primary_steps_file_path}] + primary_steps_file.referenced_step_files_and_names
           end
-          
+                    
           def step_information_for_line(line_number)
             line_index = line_number.to_i-1
             content_lines = File.read(full_file_path).split("\n")
@@ -56,12 +56,7 @@ module Spec
           end
           
           def includes_step_file?(step_file_name)
-            step_file_name = step_file_name.gsub(' steps', '').gsub('_', ' ')
-            runner_step_files_and_names.detect{|step_file_info| step_file_info[:name] == "#{step_file_name} steps"} ? true : false
-          end
-          
-          def runner_step_files_and_names
-            @runner_step_files_nad_names ||= RunnerFile.new(runner_file_path).step_files_and_names
+            all_referenced_steps_files.any?{|steps_file| steps_file.name == step_file_name }
           end
           
           def undefined_steps
@@ -89,14 +84,23 @@ module Spec
             @defined_steps ||= gather_defined_steps
           end
           
-          def gather_defined_steps
-            step_definitions = []
-            RunnerFile.new(runner_file_path).step_files_and_names.each do |step_file_info|
-              StepsFile.new(step_file_info[:file_path]).step_definitions.each do |step_def|
-                step_definitions << step_def
+          def primary_steps_file
+            StepsFile.new(primary_steps_file_path)
+          end
+          
+          def all_referenced_steps_files
+            steps_files = [primary_steps_file]
+            primary_steps_file.referenced_steps_files.each do |step_file|
+              unless steps_files.include?(step_file)
+                steps_files << step_file
+                steps_files += step_file.referenced_steps_files
               end
             end
-            step_definitions
+            steps_files
+          end
+          
+          def gather_defined_steps
+            all_referenced_steps_files.collect{ |step_file| step_file.step_definitions }.flatten
           end
         end
         

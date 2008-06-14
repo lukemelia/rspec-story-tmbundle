@@ -18,7 +18,6 @@ end
 require 'spec'
 
 $LOAD_PATH.unshift(ENV['TM_BUNDLE_SUPPORT'] + "/lib")
-require "spec/mate/story/runner"
 require "spec/mate/story/story_helper"
 require "spec/mate/text_mate_helper"
 

@@ -17,9 +17,8 @@ module Spec
             
             def klass_from_file_path(file_path)
               case file_path
-              when /(story|txt)$/     then StoryFile
-              when /_steps\.rb$/      then StepsFile
-              when /stories\/.*\.rb/  then RunnerFile
+              when /(story)$/     then StoryFile
+              when /steps\/.*\.rb$/   then StepsFile
               end
             end
           end
@@ -38,7 +37,6 @@ module Spec
           
           def is_story_file?; false; end
           def is_steps_file?; false; end
-          def is_runner_file?; false; end
         end
         
       end

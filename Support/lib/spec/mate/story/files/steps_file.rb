@@ -31,34 +31,46 @@ module Spec
             end
           end
           
-          def is_steps_file?; false; end
+          def is_steps_file?; true; end
           
           def name
-            @name ||= full_file_path.match(/\/([^\/]+)_steps\.rb$/).captures.first
+            @name ||= full_file_path.match(/\/([^\/]+)\.rb$/).captures.first
           end
           
           def alternate_file_path
-            story_file_path
-          end
-          
-          def runner_file_path
-            @runner_file_path ||= full_file_path.gsub(%r</steps/#{name}_steps\.rb$>, "/#{name}.rb")
+            if story_files_and_names.length == 1
+              story_files_and_names.first[:file_path]
+            else
+              nil
+            end
           end
           
           def story_file_path
-            @story_file_path ||= full_file_path.gsub(%r</steps/#{name}_steps\.rb$>, "/stories/#{name}.story")
+            @story_file_path ||= full_file_path.gsub(%r</steps/#{name}\.rb$>, "/#{name}/.*\.story")
           end
           
           # Story files which include this step file in the runner
-          def alternate_files_and_names
+          def story_files_and_names
             story_files = []
-            (Dir["#{project_root}/stories/**/*.story"] + Dir["#{project_root}/stories/**/*.txt"]).each do |file_path|
+            Dir["#{project_root}/stories/**/*.story"].each do |file_path|
               sf = StoryFile.new(file_path)
               if sf.includes_step_file?(name)
                 story_files << {:name => "#{sf.name.gsub('_', ' ')} story", :file_path => file_path}
               end
             end
             story_files.uniq
+          end
+          
+          alias alternate_files_and_names story_files_and_names
+          
+          def referenced_steps_files
+            referenced_step_names.collect do |name|
+              StepsFile.new("#{project_root}/stories/steps/#{name}.rb")
+            end
+          end
+          
+          def referenced_step_files_and_names
+             referenced_steps_files.collect{|sf| { :name => "#{sf.name.gsub('_', ' ')} steps", :file_path => sf.full_file_path}}
           end
           
           def step_definitions
@@ -70,6 +82,10 @@ module Spec
             else
               []
             end
+          end
+          
+          def ==(other)
+            other.full_file_path == self.full_file_path
           end
           
         protected
@@ -97,7 +113,24 @@ module Spec
           def steps_for(*args)
             yield if block_given?
           end
-
+          
+          def include_steps_for(name)
+          end
+          
+          
+          def referenced_step_names
+            if File.file?(full_file_path)
+              content = File.read(full_file_path)
+              include_steps_for_regexp = /.*include_steps_for\s+(.*)$/
+              return [] unless content.match(include_steps_for_regexp)
+              content.scan(include_steps_for_regexp).collect do |match|
+                match.first.gsub(':','').split(/,\s*/)
+              end.flatten
+            else
+              []
+            end
+          end
+          
           def Given(pattern)
             add_step('Given', pattern)
           end

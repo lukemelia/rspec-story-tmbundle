@@ -12,6 +12,15 @@ module Spec
     module Story
       
       class StoryHelper
+        
+        unless const_defined? :TM_PROJECT_ROOT_PATH
+          TM_PROJECT_ROOT_PATH = File.expand_path(ENV['TM_PROJECT_DIRECTORY'])
+
+          STORIES_PATH        = "#{TM_PROJECT_ROOT_PATH}/stories"
+          STEP_MATCHERS_PATH  = "#{TM_PROJECT_ROOT_PATH}/stories/steps"
+          HELPER_PATH         = "#{TM_PROJECT_ROOT_PATH}/stories/helper"
+        end
+        
         def initialize(full_file_path)
           @full_file_path = full_file_path
           @file = Files::Base.create_from_file_path(full_file_path)
@@ -24,16 +33,12 @@ module Spec
           argv += ENV['TM_RSPEC_STORY_OPTS'].split(" ") if ENV['TM_RSPEC_STORY_OPTS']
           $rspec_options = Spec::Runner::OptionParser.parse(argv, STDERR, STDOUT)
           
-          require @file.is_runner_file? ?
-                    @file.full_file_path :
-                    @file.runner_file_path
+          run_story_files([@file.full_file_path])
         end
         
         def goto_alternate_file
-          if @file.is_runner_file?
-            if (choice = TextMateHelper.display_select_list(['Story File', 'Steps File']))
-              goto_or_create_file(choice.to_i == 0 ? @file.story_file_path : @file.steps_file_path)
-            end
+          if @file.alternate_file_path.nil?
+            choose_alternate_file
           else
             goto_or_create_file(@file.alternate_file_path)
           end
@@ -41,6 +46,7 @@ module Spec
         
         def choose_alternate_file
           alternate_files_and_names = @file.alternate_files_and_names
+          return if alternate_files_and_names.empty?
           if (choice = TextMateHelper.display_select_list(alternate_files_and_names.collect{|h| h[:name]}))
             goto_or_create_file(alternate_files_and_names[choice][:file_path])
           end
@@ -62,7 +68,6 @@ module Spec
         
       protected
         def goto_steps_file_with_new_steps(new_steps)
-          silently_create_file(@file.runner_file_path) if !File.file?(@file.runner_file_path) && request_confirmation_to_create_file(@file.runner_file_path)
           goto_or_create_file(@file.steps_file_path, :line => 2, :column => 1, :additional_content => Files::StepsFile.create_steps(new_steps, false))
         end
         
@@ -90,6 +95,45 @@ module Spec
         
         def default_content(file_path, additional_content)
           Files::Base.default_content_for(file_path, additional_content)
+        end
+        
+        def run_story_files(stories)
+          clean_story_paths(stories).each do |story|
+            setup_and_run_story(File.readlines("#{STORIES_PATH}/#{story}.story"), story)
+          end
+        end
+        
+        def clean_story_paths(paths)
+          paths.reject! { |path| path =~ /^-/ }
+          paths.map! { |path| File.expand_path(path) }
+          paths.map! { |path| path.gsub(/\.story$/, "") }
+          paths.map! { |path| path.gsub(/#{STORIES_PATH}\//, "") }
+        end
+        
+        def setup_and_run_story(lines, story_name)
+          require HELPER_PATH
+
+          steps = steps_for_story(story_name)
+          steps.reject! { |step| !File.exist?("#{STEP_MATCHERS_PATH}/#{step}.rb") }
+          steps.each    { |step| require "#{STEP_MATCHERS_PATH}/#{step}" }
+
+          run_story_with_steps(lines, steps)
+        end
+        
+        def steps_for_story(story_name)
+          story_name.to_s.split("/")
+        end
+        
+        def run_story_with_steps(lines, steps)
+          tempfile = Tempfile.new("story")
+          lines.each do |line|
+            tempfile.puts line
+          end
+          tempfile.close
+
+          with_steps_for(*steps.map(&:to_sym)) do
+            run tempfile.path, :type => RailsStory
+          end
         end
       end
       

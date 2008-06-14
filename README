@@ -1,5 +1,35 @@
 Textmate Bundle for RSpec plain text stories
 
+** Forked to support weplay's existing convention for organizing stories and step matchers.
+
+Salient details of the weplay convention:
+
+  /project_root/stories
+    |- basic (directory named for a theme)
+    |   |- a_story_for_basic.story (extension must be .story)
+    |   |- another_basic.story
+    |
+    |- steps
+        |- basic.rb (step matchers are organized in files that match the theme)
+
+Note that no runner files are required.
+
+#include_steps_for (defined in stories/helper.rb).
+
+  module Spec
+    module Story
+      class StepGroup
+        def include_steps_for(name)
+          require File.expand_path(File.dirname(__FILE__) + "/steps/#{name}")
+          step_matchers = rspec_story_steps[name.to_sym]
+          warn "WARNING: 0 step matchers found for include_steps_for(:#{name}). Are you missing an include?" if step_matchers.empty?
+          self << step_matchers
+        end
+      end
+    end
+  end
+ 
+
 Features:
   * Color highlighting for plain text stories
     * Themes that have been modified to take advantage of this can be found in color_themes/
@@ -7,38 +37,11 @@ Features:
   * Predefined completions (escape key) for common story keywords.
   * Spellchecking turned on by default for the plaintext stories.
   * Run the current plain text story and display in HTML.  Clickable backtrace and all.
-  * Switch between plain text story and corresponding step matcher file.
+  * Switch between plain text story and corresponding step matcher files.
   * Automatically create template step file with pending steps based on the steps used in the story.
 
 Caveats:
-  * Requires RSpec 1.1.4
-  * The running of stories and file switching relies on the following directory structure convention:
-     Basic stories (no sub-directories):
-     
-       /project_root/stories
-   		   |- basic_story.rb
-   		   |- stories
-   		   |   |- basic_story.story (extension must be .story)
-   		   |
-   		   |- steps
-   		       |- basic_story_steps.rb
-     
-     Using feature sub-directories:
-     
-       /project_root/stories
-  		   |- feature_one
-  		   |   |- some_story.rb
-  		   |   |- stories
-  		   |   |   |- some_story.story (extension must be .story)
-  		   |   |
-  		   |   |- steps
-  		   |       |- some_story_steps.rb
-  		   |
-  		   |- feature_two
-  		   | .....
-  	
-  	These directory structures can be used together (basic stories can reside in the root stories directory, and feature sets can be put in sub directories).
-		
+  * Requires RSpec 1.1.4     
 
 TODO:
   * 6/1/2008 4:10AM - If in story file, and are switching to any other file, if a runner file doesn't exist
@@ -47,7 +50,6 @@ TODO:
   * Run Selected Stories command.
   * (MAYBE) Make running a story more robust to work with any configuration.
   * Refactor to make cleaner and add more specs.
-  * Warning / prompt about creating step runner file (when creating either a story or a steps file)
   * When creating all steps for a new file:
     * Don't create duplicate steps
     * Fix first step name bug
@@ -58,7 +60,7 @@ TODONE:
       - currently inserts new step and tag name of step file - steps_for(:Given "blah blah" ...)
   * When in step file - if doing SHIFT-CTRL-OPTION-DOWN - go to first step that match
   * Switch Command
-		* Easily switch between a plain text story and it's runner ruby file.
+		* Easily switch between a plain text story and it's step matchers file(s).
   * Step Navigation
     * Be able to quickly navigate to the step files that are being used for the current story.
     * Automatically go to the selected step or create it if it does not exist.

@@ -1,4 +1,4 @@
-steps_for(:basic) do
+steps_for(:global) do
   Given "global step" do
     Foo.should_not_error
   end

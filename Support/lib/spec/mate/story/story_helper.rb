@@ -68,7 +68,7 @@ module Spec
         
       protected
         def goto_steps_file_with_new_steps(new_steps)
-          goto_or_create_file(@file.steps_file_path, :line => 2, :column => 1, :additional_content => Files::StepsFile.create_steps(new_steps, false))
+          goto_or_create_file(@file.primary_steps_file_path, :line => 2, :column => 1, :additional_content => Files::StepsFile.create_steps(new_steps, false))
         end
         
         def request_confirmation_to_create_file(file_path)

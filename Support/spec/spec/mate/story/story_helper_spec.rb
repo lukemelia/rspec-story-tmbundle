@@ -22,7 +22,7 @@ module Spec
                           :is_story_file? => false,
                           :is_step_file? => false,
                           :story_file_path => '/path/to/story/file',
-                          :steps_file_path => '/path/to/steps/file',
+                          :primary_steps_file_path => '/path/to/steps/file',
                           :alternate_files_and_names => [
                               {:name => 'one', :file_path => "/path/to/one"},
                               {:name => 'two', :file_path => "/path/to/two"}

@@ -1,3 +1,5 @@
+require "foo_bar_baz"
+
 steps_for(:basic) do
   include_steps_for :global
 

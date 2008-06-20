@@ -76,8 +76,26 @@ module Spec
           def step_definitions
             if File.file?(full_file_path)
               @steps = []
+              
+              lines = File.readlines(full_file_path)
+              lines_to_eval = []
+              found_steps_for = false
+              
+              lines.each do |line|
+                if !found_steps_for && line =~ /steps_for/
+                  found_steps_for = true
+                end
+                
+                if found_steps_for
+                  lines_to_eval << line
+                else
+                  lines_to_eval << "\n"
+                end
+              end
+              
               @file_contents = File.read(full_file_path)
-              eval(@file_contents)
+              
+              eval(lines_to_eval.join)
               @steps
             else
               []

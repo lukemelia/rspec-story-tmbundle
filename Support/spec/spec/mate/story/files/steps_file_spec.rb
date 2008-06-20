@@ -87,11 +87,11 @@ module Spec
             it "should return a list of step definitions included in this file" do
               @steps_file.step_definitions.should ==
                 [
-                  {:step => @step, :type => 'Given', :pattern => "Basic step (given)", :line => 5, :column => 5, :file_path => @steps_file.full_file_path, :group_tag => 'basic'},
-                  {:step => @step, :type => 'Given', :pattern => "another basic step", :line => 9, :column => 5, :file_path => @steps_file.full_file_path, :group_tag => 'basic'},
-                  {:step => @step, :type => 'Given', :pattern => %r{Basic regexp \(given\)}, :line => 13, :column => 5, :file_path => @steps_file.full_file_path, :group_tag => 'basic'},
-                  {:step => @step, :type => 'When', :pattern => "Basic when", :line => 17, :column => 5, :file_path => @steps_file.full_file_path, :group_tag => 'basic'},
-                  {:step => @step, :type => 'Then', :pattern => "Basic then", :line => 21, :column => 5, :file_path => @steps_file.full_file_path, :group_tag => 'basic'},
+                  {:step => @step, :type => 'Given', :pattern => "Basic step (given)", :line => 7, :column => 5, :file_path => @steps_file.full_file_path, :group_tag => 'basic'},
+                  {:step => @step, :type => 'Given', :pattern => "another basic step", :line => 11, :column => 5, :file_path => @steps_file.full_file_path, :group_tag => 'basic'},
+                  {:step => @step, :type => 'Given', :pattern => %r{Basic regexp \(given\)}, :line => 15, :column => 5, :file_path => @steps_file.full_file_path, :group_tag => 'basic'},
+                  {:step => @step, :type => 'When', :pattern => "Basic when", :line => 19, :column => 5, :file_path => @steps_file.full_file_path, :group_tag => 'basic'},
+                  {:step => @step, :type => 'Then', :pattern => "Basic then", :line => 23, :column => 5, :file_path => @steps_file.full_file_path, :group_tag => 'basic'},
                 ]
             end
           end
